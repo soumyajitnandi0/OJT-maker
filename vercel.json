@@ -11,9 +11,8 @@
   },
   "functions": {
     "main.py": {
-      "runtime": "python3.11",
       "maxDuration": 60,
-      "memory": 2048
+      "memory": 1024
     }
   }
 }
