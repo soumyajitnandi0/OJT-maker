@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from dateutil.parser import parse as parse_date
 import fitz  # PyMuPDF
 
-from gemini_helper import split_work_into_days, generate_journal_entry
+from gemini_helper import split_work_into_days, generate_journal_entry, generate_all_journals
 from pdf_filler import fill_pdf_with_overlay
 
 app = FastAPI(title="OJT Journal Maker")
@@ -95,23 +95,36 @@ def generate_pdf_background(task_id: str, api_key: str):
         designation = task["designation"]
         total = len(daily_work)
 
-        pages_data = []
+        # STEP 1: Generate ALL entries in ONE API call
+        task["message"] = "Generating all journal entries..."
+        print(f"[Task {task_id}] Generating all entries in one call...")
 
-        for i, day_item in enumerate(daily_work):
-            task["current_page"] = i + 1
-            task["message"] = f"Generating journal entry for Day {i + 1} of {total}…"
+        try:
+            all_entries = generate_all_journals(api_key, daily_work)
+            print(f"[Task {task_id}] All entries generated successfully")
+        except Exception as exc:
+            print(f"[Task {task_id}] ERROR (batch): {exc}")
+            print(traceback.format_exc())
 
-            try:
-                entry = generate_journal_entry(api_key, day_item["date"], day_item["work"])
-            except Exception as exc:
-                # Fallback entry on Gemini error
-                entry = {
+            # fallback: create basic entries
+            all_entries = []
+            for day_item in daily_work:
+                all_entries.append({
                     "my_space": "Worked on assigned tasks for the day.",
                     "tasks_carried_out": day_item["work"],
                     "key_learnings": "Gained practical experience.",
                     "tools_used": "Various tools",
                     "special_achievements": "N/A",
-                }
+                })
+
+        # STEP 2: Build pages_data locally (NO API CALLS HERE)
+        pages_data = []
+
+        for i, day_item in enumerate(daily_work):
+            task["current_page"] = i + 1
+            task["message"] = f"Processing page {i + 1} of {total}..."
+
+            entry = all_entries[i]
 
             pages_data.append({
                 "date": day_item["date"],
@@ -127,8 +140,10 @@ def generate_pdf_background(task_id: str, api_key: str):
 
             task["progress"] = int(((i + 1) / total) * 100)
 
-        task["message"] = "Filling PDF template…"
+        task["message"] = "Filling PDF template..."
+        print(f"[Task {task_id}] {task['message']}")
         filled_pdf = fill_pdf_with_overlay(pdf_bytes, pages_data)
+        print(f"[Task {task_id}] PDF filled successfully")
 
         # Write to a temp file
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
@@ -140,10 +155,13 @@ def generate_pdf_background(task_id: str, api_key: str):
         task["status"] = "done"
         task["progress"] = 100
         task["message"] = "PDF generated successfully!"
+        print(f"[Task {task_id}] COMPLETE - File saved to {tmp.name}")
 
-    except Exception:
+    except Exception as e:
         task["status"] = "error"
-        task["message"] = traceback.format_exc()
+        task["message"] = str(e)
+        print(f"[Task {task_id}] FAILED: {e}")
+        print(traceback.format_exc())
 
 
 # ---------------------------------------------------------------------------
@@ -304,6 +322,23 @@ async def download(task_id: str):
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
+
+
+@app.get("/download-template")
+async def download_template():
+    """Download the template PDF if it exists."""
+    template_path = "abc.pdf"
+    if os.path.exists(template_path):
+        return FileResponse(
+            path=template_path,
+            media_type="application/pdf",
+            filename="ojt_template.pdf",
+        )
+    else:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Template PDF not found. Please upload abc.pdf to the project root."}
+        )
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")

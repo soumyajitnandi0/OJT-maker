@@ -4,19 +4,22 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import simpleSplit
 import PyPDF2
+import re
+import json
 
 A4_WIDTH, A4_HEIGHT = A4  # 595.27, 841.89 pts
 
 FIELD_COORDS = {
-    "date":                 {"x": 420, "y": 790, "max_width": 150, "font_size": 10},
-    "ojt_timing":           {"x": 420, "y": 770, "max_width": 150, "font_size": 10},
-    "department":           {"x": 420, "y": 750, "max_width": 150, "font_size": 10},
-    "designation":          {"x": 420, "y": 730, "max_width": 150, "font_size": 10},
-    "my_space":             {"x": 50,  "y": 680, "max_width": 490, "font_size": 9, "max_lines": 4},
-    "tasks_carried_out":    {"x": 50,  "y": 580, "max_width": 490, "font_size": 9, "max_lines": 6},
-    "key_learnings":        {"x": 50,  "y": 460, "max_width": 490, "font_size": 9, "max_lines": 5},
-    "tools_used":           {"x": 50,  "y": 340, "max_width": 490, "font_size": 9, "max_lines": 4},
-    "special_achievements": {"x": 50,  "y": 220, "max_width": 490, "font_size": 9, "max_lines": 3},
+    "date":                 {"x": 121, "y": 748, "max_width": 150, "font_size": 10},
+    "ojt_timing_start":     {"x": 384, "y": 748, "max_width": 80, "font_size": 10},
+    "ojt_timing_end":       {"x": 480, "y": 748, "max_width": 80, "font_size": 10},
+    "department":           {"x": 150, "y": 718, "max_width": 150, "font_size": 10},
+    "designation":          {"x": 404, "y": 718, "max_width": 150, "font_size": 10},
+    "my_space":             {"x": 50,  "y": 650, "max_width": 490, "font_size": 9, "max_lines": 4},
+    "tasks_carried_out":    {"x": 50,  "y": 460, "max_width": 490, "font_size": 9, "max_lines": 6},
+    "key_learnings":        {"x": 50,  "y": 300, "max_width": 490, "font_size": 9, "max_lines": 5},
+    "tools_used":           {"x": 53,  "y": 170, "max_width": 280, "font_size": 9, "max_lines": 4},
+    "special_achievements": {"x": 320,  "y": 170, "max_width": 240, "font_size": 9, "max_lines": 3},
 }
 
 # Human-readable label patterns that map to field keys
@@ -31,6 +34,65 @@ LABEL_PATTERNS = {
     "tools_used":           ["tools used:", "tools:", "equipment used:", "technologies:"],
     "special_achievements": ["special achievements:", "achievements:", "milestones:"],
 }
+
+
+def clean_text_field(text: str) -> str:
+    """
+    Clean text field by converting JSON arrays to newline-separated text.
+    Handles formats like: ['item1', 'item2', 'item3']
+    """
+    if not text:
+        return ""
+    
+    text = str(text).strip()
+    
+    # Check if it looks like a JSON array
+    if text.startswith('[') and text.endswith(']'):
+        try:
+            items = json.loads(text)
+            if isinstance(items, list):
+                # Join with newlines and clean up quotes
+                return '\n'.join(str(item).strip() for item in items if item)
+        except (json.JSONDecodeError, ValueError):
+            pass
+    
+    # If it contains bullet points or dashes, clean them up
+    lines = text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        line = line.strip()
+        # Remove leading bullet characters
+        line = re.sub(r'^[\-•*]\s*', '', line)
+        if line:
+            cleaned_lines.append(line)
+    
+    return '\n'.join(cleaned_lines)
+
+
+def parse_ojt_timing(timing_str: str) -> tuple:
+    """
+    Parse OJT timing string and return (start_time, end_time).
+    Handles formats like "3:30 PM – 6:30 PM" or "3:30 PM-6:30 PM"
+    
+    Args:
+        timing_str: Timing string like "3:30 PM – 6:30 PM"
+    
+    Returns:
+        Tuple of (start_time, end_time) like ("3:30 PM", "6:30 PM")
+    """
+    if not timing_str:
+        return "", ""
+    
+    # Split by common delimiters: –, -, or "to"
+    import re
+    parts = re.split(r'[–\-]|\bto\b', timing_str, flags=re.IGNORECASE)
+    
+    if len(parts) >= 2:
+        start = parts[0].strip()
+        end = parts[1].strip()
+        return start, end
+    
+    return timing_str.strip(), ""
 
 
 def detect_pdf_fields(pdf_bytes: bytes) -> dict:
@@ -108,16 +170,21 @@ def _build_overlay_page(c_canvas, page_data: dict, page_width: float, page_heigh
     font_name = "Helvetica"
     line_height_factor = 1.4
 
+    # Parse ojt_timing if it contains a range (e.g., "3:30 PM – 6:30 PM")
+    ojt_timing_str = page_data.get("ojt_timing", "")
+    ojt_timing_start, ojt_timing_end = parse_ojt_timing(ojt_timing_str)
+
     fields_to_draw = {
         "date":                 page_data.get("date", ""),
-        "ojt_timing":           page_data.get("ojt_timing", ""),
+        "ojt_timing_start":     ojt_timing_start,
+        "ojt_timing_end":       ojt_timing_end,
         "department":           page_data.get("department", ""),
         "designation":          page_data.get("designation", ""),
-        "my_space":             page_data.get("my_space", ""),
-        "tasks_carried_out":    page_data.get("tasks_carried_out", ""),
-        "key_learnings":        page_data.get("key_learnings", ""),
-        "tools_used":           page_data.get("tools_used", ""),
-        "special_achievements": page_data.get("special_achievements", ""),
+        "my_space":             clean_text_field(page_data.get("my_space", "")),
+        "tasks_carried_out":    clean_text_field(page_data.get("tasks_carried_out", "")),
+        "key_learnings":        clean_text_field(page_data.get("key_learnings", "")),
+        "tools_used":           clean_text_field(page_data.get("tools_used", "")),
+        "special_achievements": clean_text_field(page_data.get("special_achievements", "")),
     }
 
     for field_key, text_value in fields_to_draw.items():

@@ -304,6 +304,21 @@
 <header>
   <div class="logo">📋</div>
   <h1>OJT <span>Journal Maker</span></h1>
+  <div style="margin-left: auto;">
+    <button id="downloadTemplateBtn" style="
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    " onmouseover="this.style.background='var(--accent-h)'" onmouseout="this.style.background='var(--accent)'">
+      ⬇️ Download Template
+    </button>
+  </div>
 </header>
 
 <div class="wizard">
@@ -327,7 +342,15 @@
   <!-- ── Panel 1: Upload & Configure ── -->
   <div class="panel active" id="panel-1">
     <h2>Upload PDF Template</h2>
-    <p class="subtitle">Upload your OJT journal PDF template and configure the internship details.</p>
+    <p class="subtitle">Upload your OJT journal PDF template and configure the OJT details.</p>
+
+    <div style="background: rgba(108,99,255,0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.85rem; color: var(--text);">
+      <strong>📌 Quick Tips:</strong>
+      <ul style="margin: 8px 0 0 20px; line-height: 1.6;">
+        <li>👉 <strong>Download template:</strong> Click the <strong>"⬇️ Download Template"</strong> button in the top right if you don't have a PDF ready.</li>
+        <li>🔑 <strong>API Key:</strong> Use a <strong>fresh/new API key</strong> each time you click Generate for best results.</li>
+      </ul>
+    </div>
 
     <div id="error-1" class="banner error"></div>
 
@@ -367,8 +390,8 @@
       </div>
 
       <div class="full">
-        <label for="work-desc">Work Description <span style="color:var(--muted);font-weight:400">(overall internship work)</span></label>
-        <textarea id="work-desc" rows="5" placeholder="Describe the overall work you did during the internship. The AI will split it into daily tasks..."></textarea>
+        <label for="work-desc">Work Description <span style="color:var(--muted);font-weight:400">(overall work you did till date)</span></label>
+        <textarea id="work-desc" rows="5" placeholder="Describe the overall work you did during the OJT. The AI will split it into daily tasks..."></textarea>
       </div>
 
       <div class="full">
@@ -444,6 +467,11 @@
   let currentTaskId = null;
   let currentApiKey = null;
   let pollInterval = null;
+
+  // ── Download Template ──
+  document.getElementById('downloadTemplateBtn').addEventListener('click', () => {
+    window.location.href = '/download-template';
+  });
 
   // ── Step management ──
   function goToStep(n) {
