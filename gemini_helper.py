@@ -120,7 +120,7 @@ RULES:
 - Use college-friendly tools: Python, JavaScript, Git, SQL, VS Code, Linux, React, etc.
 
 For EACH day return:
-- my_space: 1-2 lines of personal reflection
+- my_space: Minimum 4 lines of detailed personal reflection
 - tasks_carried_out: List items separated by NEWLINE (NOT array)
 - key_learnings: List items separated by NEWLINE (NOT array)
 - tools_used: comma-separated list
@@ -195,7 +195,7 @@ Work Done: {work}
 
 Return ONLY a valid JSON object (no markdown, no explanation):
 {{
-  "my_space": "Brief personal reflection (1-2 sentences)",
+  "my_space": "Detailed personal reflection (Minimum 4 sentences/lines)",
   "tasks_carried_out": "Task 1\\nTask 2\\nTask 3\\nTask 4",
   "key_learnings": "Learning 1\\nLearning 2\\nLearning 3",
   "tools_used": "tool1, tool2, tool3",
