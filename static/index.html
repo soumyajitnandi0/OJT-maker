@@ -391,6 +391,46 @@
         <input type="text" id="designation" placeholder="e.g. OJT Trainee" />
       </div>
 
+      <div class="full" style="margin-top: 10px;">
+        <h3 style="font-size: 0.95rem; margin-bottom: 8px;">Trainee Details (Page 3)</h3>
+      </div>
+      <div>
+        <label for="name">Name</label>
+        <input type="text" id="name" placeholder="John Doe" />
+      </div>
+      <div>
+        <label for="registration_number">Registration Number</label>
+        <input type="text" id="registration_number" placeholder="12345678" />
+      </div>
+      <div>
+        <label for="program_name">Program Name</label>
+        <input type="text" id="program_name" placeholder="e.g. B.Tech Computer Science" />
+      </div>
+      <div>
+        <label for="semester">Semester</label>
+        <input type="text" id="semester" placeholder="e.g. 6th" />
+      </div>
+      <div>
+        <label for="location">Location</label>
+        <input type="text" id="location" placeholder="e.g. New York" />
+      </div>
+      <div>
+        <label for="industry_partner_name">Industry Partner Name</label>
+        <input type="text" id="industry_partner_name" placeholder="e.g. Acme Corp" />
+      </div>
+      <div>
+        <label for="phone_no">Phone No</label>
+        <input type="text" id="phone_no" placeholder="e.g. +1 234 567 8900" />
+      </div>
+      <div>
+        <label for="email_id">Email Id</label>
+        <input type="email" id="email_id" placeholder="e.g. john@example.com" />
+      </div>
+
+      <div class="full" style="margin-top: 10px;">
+        <h3 style="font-size: 0.95rem; margin-bottom: 8px;">Journal Specifics</h3>
+      </div>
+
       <div class="full">
         <label for="work-desc">Work Description <span style="color:var(--muted);font-weight:400">(overall work you did till date)</span></label>
         <textarea id="work-desc" rows="5" placeholder="Describe the overall work you did during the OJT. The AI will split it into daily tasks..."></textarea>
@@ -584,6 +624,14 @@
     fd.append('ojt_timing', val('ojt-timing'));
     fd.append('department', val('department'));
     fd.append('designation', val('designation'));
+    fd.append('name', val('name'));
+    fd.append('registration_number', val('registration_number'));
+    fd.append('program_name', val('program_name'));
+    fd.append('semester', val('semester'));
+    fd.append('location', val('location'));
+    fd.append('industry_partner_name', val('industry_partner_name'));
+    fd.append('phone_no', val('phone_no'));
+    fd.append('email_id', val('email_id'));
     fd.append('work_description', val('work-desc'));
     fd.append('api_key', currentApiKey);
 
@@ -716,8 +764,12 @@
     currentApiKey = null;
     pdfInput.value = '';
     fileDisplay.textContent = '';
-    ['start-date','end-date','ojt-timing','department','designation','work-desc','api-key']
-      .forEach(id => document.getElementById(id).value = '');
+    ['start-date','end-date','ojt-timing','department','designation','work-desc','api-key',
+     'name','registration_number','program_name','semester','location','industry_partner_name','phone_no','email_id']
+      .forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+      });
     if (window.fpSkipDates) window.fpSkipDates.clear();
     document.getElementById('days-list').innerHTML = '';
     document.getElementById('progress-bar').style.width = '0%';

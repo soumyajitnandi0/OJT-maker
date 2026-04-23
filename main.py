@@ -110,6 +110,7 @@ def generate_pdf_background(task_id: str, api_key: str):
         ojt_timing = task["ojt_timing"]
         department = task["department"]
         designation = task["designation"]
+        user_details = task.get("user_details", {})
         total = len(daily_work)
 
         # STEP 1: Generate ALL entries in ONE API call
@@ -159,7 +160,7 @@ def generate_pdf_background(task_id: str, api_key: str):
 
         task["message"] = "Filling PDF template..."
         print(f"[Task {task_id}] {task['message']}")
-        filled_pdf = fill_pdf_with_overlay(pdf_bytes, pages_data)
+        filled_pdf = fill_pdf_with_overlay(pdf_bytes, pages_data, user_details)
         print(f"[Task {task_id}] PDF filled successfully")
 
         # Write to a temp file
@@ -204,6 +205,14 @@ async def upload(
     ojt_timing: str = Form(...),
     department: str = Form(...),
     designation: str = Form(...),
+    name: str = Form(default=""),
+    registration_number: str = Form(default=""),
+    program_name: str = Form(default=""),
+    semester: str = Form(default=""),
+    location: str = Form(default=""),
+    industry_partner_name: str = Form(default=""),
+    phone_no: str = Form(default=""),
+    email_id: str = Form(default=""),
     work_description: str = Form(...),
     api_key: str = Form(...),
 ):
@@ -260,6 +269,17 @@ async def upload(
             "ojt_timing": ojt_timing,
             "department": department,
             "designation": designation,
+            "user_details": {
+                "name": name,
+                "registration_number": registration_number,
+                "start_date": start_date,
+                "program_name": program_name,
+                "semester": semester,
+                "location": location,
+                "industry_partner_name": industry_partner_name,
+                "phone_no": phone_no,
+                "email_id": email_id,
+            },
             "progress": 0,
             "total_pages": num_days,
             "current_page": 0,

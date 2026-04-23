@@ -19,6 +19,15 @@ FIELD_COORDS = {
     "key_learnings":        {"x": 50,  "y": 300, "max_width": 490, "font_size": 9, "max_lines": 5},
     "tools_used":           {"x": 53,  "y": 170, "max_width": 280, "font_size": 9, "max_lines": 4},
     "special_achievements": {"x": 320,  "y": 170, "max_width": 240, "font_size": 9, "max_lines": 3},
+    "name":                 {"x": 163, "y": 285, "max_width": 300, "font_size": 11},
+    "registration_number":  {"x": 163, "y": 255, "max_width": 300, "font_size": 11},
+    "start_date":           {"x": 383, "y": 255, "max_width": 300, "font_size": 11},
+    "program_name":         {"x": 163, "y": 225, "max_width": 300, "font_size": 11},
+    "semester":             {"x": 135, "y": 193, "max_width": 300, "font_size": 11},
+    "location":             {"x": 273, "y": 193, "max_width": 300, "font_size": 11},
+    "industry_partner_name":{"x": 193, "y": 163.5, "max_width": 300, "font_size": 11},
+    "phone_no":             {"x": 123, "y": 83, "max_width": 300, "font_size": 9},
+    "email_id":             {"x": 298, "y": 83, "max_width": 300, "font_size": 9},
 }
 
 # Human-readable label patterns that map to field keys
@@ -157,6 +166,12 @@ def _build_overlay_page(c_canvas, page_data: dict, page_width: float, page_heigh
         "special_achievements": clean_text_field(page_data.get("special_achievements", "")),
     }
 
+    # Add the new person/program fields
+    new_fields = ["name", "registration_number", "start_date", "program_name", "semester", "location", "industry_partner_name", "phone_no", "email_id"]
+    for f in new_fields:
+        if page_data.get(f):
+            fields_to_draw[f] = page_data[f]
+
     for field_key, text_value in fields_to_draw.items():
         if not text_value:
             continue
@@ -192,7 +207,7 @@ def _build_overlay_page(c_canvas, page_data: dict, page_width: float, page_heigh
                 c_canvas.drawString(x, y - i * line_height, line)
 
 
-def fill_pdf_with_overlay(pdf_bytes: bytes, pages_data: list) -> bytes:
+def fill_pdf_with_overlay(pdf_bytes: bytes, pages_data: list, user_details=None) -> bytes:
     """
     Fill the PDF template with journal data.
 
@@ -206,6 +221,7 @@ def fill_pdf_with_overlay(pdf_bytes: bytes, pages_data: list) -> bytes:
         pages_data: List of dicts, one per output page, each with keys:
             date, ojt_timing, department, designation, my_space,
             tasks_carried_out, key_learnings, tools_used, special_achievements
+        user_details: Dict of user details to place on the 3rd page.
 
     Returns:
         Filled PDF as bytes.
@@ -234,8 +250,8 @@ def fill_pdf_with_overlay(pdf_bytes: bytes, pages_data: list) -> bytes:
         except Exception:
             page_sizes.append((A4_WIDTH, A4_HEIGHT))
 
-    # Number of output pages = max(template pages, data pages)
-    num_output_pages = max(num_template_pages, len(pages_data))
+    # Number of output pages = max(template pages, len(pages_data) + 7) because journals start on page index 7
+    num_output_pages = max(num_template_pages, len(pages_data) + 7)
 
     # --- Build overlay PDF with reportlab ---
     overlay_buffer = io.BytesIO()
@@ -250,11 +266,15 @@ def fill_pdf_with_overlay(pdf_bytes: bytes, pages_data: list) -> bytes:
 
         c.setPageSize((pw, ph))
 
-        # Get data for this page (leave extra pages blank if no more data)
-        if page_idx < len(pages_data):
-            page_data = pages_data[page_idx]
-        else:
-            page_data = {}
+        # Get data for this page
+        page_data = {}
+        if page_idx == 2 and user_details:
+            page_data.update(user_details)
+            
+        if page_idx >= 7:
+            journal_idx = page_idx - 7
+            if journal_idx < len(pages_data):
+                page_data.update(pages_data[journal_idx])
 
         _build_overlay_page(c, page_data, pw, ph, detected_positions, page_idx)
         c.showPage()
